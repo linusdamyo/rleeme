@@ -4,6 +4,8 @@ var app = express();
 var bodyParser = require('body-parser');
 var request = require('request');
 var cheerio = require('cheerio');
+var Q = require('q');
+var debug = require('debug')('rleeme');
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -15,38 +17,40 @@ app.use(express.static(__dirname + '/public'));
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 
-function checkUrl(url, res) {
+function checkUrl(url) {
+  var deferred = Q.defer();
   request(url, function(err, response, html) {
     if (err) {
-      return res.json({st:response.statusCode, error:err});
+      deferred.reject(new Error(err));
+      return deferred.promise;
     }
     var $ = cheerio.load(html);
     if ($('title').text() === 'Service unavailable!') {
-      return res.json({st:response.statusCode, error:"Service unavailable!"});
+      deferred.reject(new Error('Service unavailable!'));
+      return deferred.promise;
     }
     var avail = $('.availability-now', '#product-info').text().length > 0 ? 'Y':'N';
-    console.log(avail);
-    return res.json({st:response.statusCode, error:"", avail:avail});
+    debug(avail);
+    deferred.resolve({st:response.statusCode, error:"", avail:avail});
   });
+  return deferred.promise;
 }
 
 app.post('/url', function(req,res) {
-  console.log(req.body);
-  request(req.body.url, function(err, response, html) {
-    if (err) {
-      return res.json({st:response.statusCode, error:err});
+  debug(req.body);
+  checkUrl(req.body.url)
+  .then(function(result) {
+    if (result.avail === 'Y' && req.body.oldAvail === 'N') {
+      return checkUrl(req.body.url);
     }
-    var $ = cheerio.load(html);
-    if ($('title').text() === 'Service unavailable!') {
-      return res.json({st:response.statusCode, error:"Service unavailable!"});
-    }
-    var avail = $('.availability-now', '#product-info').text().length > 0 ? 'Y':'N';
-    console.log(avail);
-    if (avail === 'Y' && req.body.oldAvail === 'N') {
-      return checkUrl(req.body.url, res);
-    } else {
-      return res.json({st:response.statusCode, error:"", avail:avail});
-    }
+    return result;
+  })
+  .then(function(result) {
+    debug(result);
+    return res.json(result);
+  })
+  .fail(function(err) {
+    return res.json({st:'', error:err});
   });
 });
 

@@ -1,1 +1,1 @@
-web: node index.js
+web: DEBUG=rleeme node index.js
