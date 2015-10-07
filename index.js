@@ -50,6 +50,7 @@ app.post('/url', function(req,res) {
     return res.json(result);
   })
   .fail(function(err) {
+    debug(err);
     return res.json({st:'', error:err});
   });
 });
