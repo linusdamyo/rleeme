@@ -7,7 +7,7 @@ var cheerio = require('cheerio');
 var Q = require('q');
 var debug = require('debug')('rleeme');
 
-app.set('port', (process.env.PORT || 5000));
+app.set('port', (process.env.PORT || 5567));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
@@ -36,7 +36,13 @@ function checkUrl(url) {
   return deferred.promise;
 }
 
-app.post('/url', function(req,res) {
+function testError() {
+  var deferred = Q.defer();
+  deferred.reject(new Error('Test Error!'));
+  return deferred.promise;
+}
+
+app.post('/url', function(req, res) {
   debug(req.body);
   checkUrl(req.body.url)
   .then(function(result) {
@@ -51,7 +57,19 @@ app.post('/url', function(req,res) {
   })
   .fail(function(err) {
     debug(err);
-    return res.json({st:'', error:err});
+    return res.json({st:'', error: err.message});
+  });
+});
+
+app.get('/test/error', function(req, res) {
+  testError()
+  .then(function(result) {
+    debug('cannot reach here.');
+    return res.json({st:'', error:'cannot reach here.'});
+  })
+  .fail(function(err) {
+    debug(err);
+    return res.json({st:'', error: err.message});
   });
 });
 
