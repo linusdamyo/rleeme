@@ -29,7 +29,8 @@ function checkUrl(url) {
       deferred.reject(new Error('Service unavailable!'));
       return deferred.promise;
     }
-    var avail = $('.availability-now', '#product-info').text().length > 0 ? 'Y':'N';
+    //var avail = $('.availability-now', '#product-info').text().length > 0 ? 'Y':'N';
+    var avail = $('.available--now').text().length > 0 ? 'Y':'N';
     debug(avail);
     deferred.resolve({st:response.statusCode, error:"", avail:avail});
   });
